@@ -1,220 +1,188 @@
 ---
 name: ai-monthly-report
-description: 29CM PM AI 활용 월간 리포트 생성 스킬. "AI 기여 리포트 만들어줘", "월간 리포트 생성", "이번 달 AI 성과 정리해줘", "monthly report", "리포트 Confluence 올려줘" 등의 요청에 트리거됩니다. ai-activity-tracker로 누적된 세션 데이터(Persistent Storage)를 기반으로 월간 AI 기여 리포트를 마크다운으로 생성하고, MCP 환경에서는 Confluence 자동 발행까지 수행합니다. 예시 출력 포맷은 references/example-pm-monthly-report.md 참조.
+description: 29CM PM AI 활용 월간 리포트 React 대시보드 생성 스킬. "AI 기여 리포트 만들어줘", "월간 리포트 생성", "이번 달 AI 성과 정리해줘", "monthly report", "리포트 대시보드 만들어줘" 등의 요청에 트리거됩니다. ai-activity-tracker로 누적된 Persistent Storage 세션 데이터를 로드하여, 4탭(Overview/카테고리/타임라인/전체내역) 다크 테마 React JSX Artifact 대시보드로 출력합니다. KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 테이블, 필터링 가능한 전체 세션 내역을 포함합니다. 마크다운 텍스트가 아닌 시각화 대시보드로만 출력합니다.
 ---
 
-# 29CM PM AI 활용 월간 리포트 생성기 (표준)
+# 29CM PM AI 활용 월간 리포트 생성기 (React 대시보드 버전)
+
+기준: https://wiki.team.musinsa.com/wiki/spaces/~shin.han/pages/383353087
 
 ## 목적
-ai-activity-tracker로 누적된 세션 데이터를 기반으로 월간 AI 기여 리포트를 생성한다.
-Confluence 발행(Claude Code + MCP 환경) 또는 마크다운 다운로드(Desktop 환경) 방식으로 출력.
+
+ai-activity-tracker로 누적된 세션 데이터를 기반으로 **React 대시보드 Artifact**로 월간 AI 기여 리포트를 생성한다. 마크다운 텍스트가 아닌, 시각화된 대시보드 형태로 출력한다.
 
 ## 트리거 조건
+
 - "AI 기여 리포트 만들어줘", "월간 리포트 생성"
 - "이번 달 AI 성과 정리해줘", "monthly report"
-- "ai-monthly-report", "리포트 Confluence 올려줘"
+- "ai-monthly-report", "리포트 대시보드 만들어줘"
 
 ---
 
-## 자동 처리 항목
+## 출력 형태: React JSX Artifact (필수)
 
-1. **Persistent Storage에서 세션 데이터 자동 로드**
-2. **기간 필터링** → 이번 달 (또는 사용자 지정 월)
-3. **집계 계산** → 유형별 건수, 총 절감시간, MD, 효율 배수 평균
-4. **카테고리별 분포** → 자동 집계
-5. **리포트 마크다운 자동 생성**
-6. **(Level 2)** Confluence 자동 발행 (Atlassian MCP 필요)
+이 스킬은 **반드시 React JSX Artifact로 출력**한다.
+마크다운 텍스트, 표, 일반 텍스트 형식은 사용하지 않는다.
 
-## 수동 처리 항목
+전체 구현 레퍼런스: [`references/ai-monthly-report-example.jsx`](references/ai-monthly-report-example.jsx) — 4탭 구조, 디자인 시스템, 집계 로직 모두 포함.
 
-- 리포트 대상 월 확인 (기본: 현재 월)
-- Confluence 발행 공간·위치 확인
-- Jira 이슈 목록 링크 (MCP 없는 경우 수동 붙여넣기)
-- 특이사항·하이라이트 멘트 추가
+---
+
+## 대시보드 구성 (4탭)
+
+### Tab 1: Overview
+- KPI 카드 4개: 총 건수 / 절감시간(h) / MD 환산 / 효율 배수
+- 카테고리별 절감시간 수평 바차트
+- 도구별(Desktop/Code) 비율 + 주요 카테고리
+- 이달의 하이라이트 (자동 생성)
+- 절감시간 추정 근거 테이블 (단가 × 건수)
+
+### Tab 2: 카테고리별
+- 카테고리별 카드 그리드 (2열)
+- 카드 내: 총 건수/시간 + 세부 작업 목록 (최대 3개)
+- 카테고리 색상 코딩
+
+### Tab 3: 타임라인
+- 주차별 절감시간 스택 바 (Code/Desktop 분리)
+- Desktop vs Code 범례
+
+### Tab 4: 전체 내역
+- 도구 / 카테고리 필터
+- 전체 세션 테이블 (날짜·도구·카테고리·유형·내용·시간·링크)
+- 필터 적용 건수·합계
+
+---
+
+## 디자인 가이드 (과거 대시보드 스타일 통일)
+
+```
+배경: #0f1117 (진한 네이비 다크)
+카드: #1e293b
+강조선: #334155
+탭 액티브: #6366f1 (인디고)
+
+카테고리 색상:
+  PRD·설계:    #6366f1
+  Jira:        #06b6d4
+  전략·기획:   #f59e0b
+  데이터 분석: #10b981
+  문서화:      #8b5cf6
+  경쟁·리서치: #f43f5e
+  매니저기여:  #ec4899
+
+도구 색상:
+  Code:    #6366f1
+  Desktop: #10b981
+```
+
+폰트: `'Pretendard','Apple SD Gothic Neo',sans-serif`
+
+---
+
+## 데이터 소스
+
+### Case A: Persistent Storage 데이터 있음 (ai-activity-tracker 사용 중)
+
+```javascript
+const raw = await window.storage.get("ai_sessions");
+const sessions = raw ? JSON.parse(raw.value) : [];
+// 기간 필터링
+const targetMonth = "2026-04"; // 현재 월 또는 사용자 지정
+const data = sessions.filter(s => s.date.startsWith(targetMonth));
+```
+
+### Case B: Persistent Storage 없음 (데이터 직접 입력)
+
+사용자에게 아래 필드를 입력받아 sessions 배열 구성:
+
+```
+날짜, 도구(Desktop/Code), 카테고리, 유형/스코프 티어, 작업 내용, 절감시간(h), 산출물 링크
+```
+
+입력 방법:
+1. "세션 목록 붙여줘" → 사용자가 텍스트로 붙여넣기
+2. 슬랙/노션에서 복사한 기존 리포트 텍스트 파싱
+
+---
+
+## 단가 기준표 (대시보드 내 추정 근거 섹션용)
+
+| 유형 | 단가 |
+|------|------|
+| Initiative | 4h |
+| Epic | 2h |
+| Dev/Task | 1h |
+| 전략문서 S | 32h |
+| 전략문서 A | 16~20h |
+| 전략문서 B | 8~9h |
+| 전략문서 C | 3h |
+| 2pager 복합 | 64h |
+| 2pager 표준 | 32h |
+| 2pager 단순 | 12h |
+| PRD 복합 | 32h |
+| PRD 일반 | 20h |
+| PRD 단순 | 7h |
+| Databricks 단순 | 6~14h |
+| Databricks 분석 | 13~35h |
+| Databricks 종합 | 32~72h |
+| Amplitude 이벤트/퍼널 | 1~4.5h |
+| Amplitude 코호트/리텐션 | 4~5h |
+| Amplitude 복합 | 8~12h |
+| 정책·가이드·API | 2h |
+| 위클리·회의록 | 1h |
+| CRM·OKR 문서 | 2h |
 
 ---
 
 ## 실행 절차
 
-### STEP 1: 데이터 로드 및 기간 필터
+### STEP 1: 기간 확인
+"어느 달 리포트를 생성할까요?" (기본: 현재 월)
+
+### STEP 2: 데이터 로드
+Persistent Storage 조회 → 없으면 사용자 입력 요청
+
+### STEP 3: 집계 계산 (JavaScript 내부)
+
 ```javascript
-const raw = await window.storage.get("ai_sessions");
-const sessions = raw ? JSON.parse(raw.value) : [];
-const targetMonth = "2026-04"; // 사용자 지정 또는 현재 월
-const filtered = sessions.filter(s => s.date.startsWith(targetMonth));
+const totalH = sessions.reduce((a,b) => a + b.saved_hours, 0);
+const totalMD = (totalH / 8).toFixed(1);
+const catGroups = groupBy(sessions, "category");
+const toolGroups = groupBy(sessions, "tool");
+const weekGroups = groupByWeek(sessions); // 주차별
 ```
 
-### STEP 2: 집계 계산
-```javascript
-const summary = {
-  total_count: filtered.length,
-  total_hours: filtered.reduce((a, b) => a + b.saved_hours, 0),
-  total_md: (total_hours / 8).toFixed(1),
-  by_category: groupBy(filtered, "category"),
-  by_type: groupBy(filtered, "type"),
-  by_tool: groupBy(filtered, "tool"),
-  jira_count: filtered.filter(s => s.output_link.includes("jira")).length,
-  confluence_count: filtered.filter(s => s.output_link.includes("wiki")).length
-};
+### STEP 4: React JSX Artifact 생성
+- 위 디자인 가이드 스타일 적용
+- 4탭 구조 구현 (`references/ai-monthly-report-example.jsx` 그대로 따라가되 데이터만 교체)
+- 실제 집계 데이터로 차트/테이블 렌더링
+- 단가 근거 테이블 자동 구성
+
+### STEP 5: Slack 공유 메시지 출력
+
+대시보드 아래에 텍스트로 추가:
+
 ```
-
-### STEP 3: 리포트 마크다운 생성
-
-아래 구조로 마크다운을 생성한다.
-
----
-
-```markdown
-# AI 활용 성과 리포트 — YYYY년 M월
-
-> 29CM PM AI 활용 공통 가이드 기준: https://wiki.team.musinsa.com/...
-
----
-
-## 요약
-
-| 항목 | 수량 | 절감 시간 |
-|------|------|----------|
-| Jira 이슈 | N건 | Nh |
-| Confluence 페이지 | N건 | Nh |
-| 기타 세션 (분석·전략·리서치) | N건 | Nh |
-| **합계** | **N건** | **Nh (~N MD)** |
-
-> 효율 배수: 평균 N.N×  
-> 단가 기준: 가이드 v2 (2026-04-08)
-
----
-
-## M1. KPI 요약 카드
-
-| 지표 | 이번 달 |
-|------|--------|
-| 총 AI 지원 건수 | N건 |
-| 누적 절감 시간 | Nh |
-| MD 환산 | N.N MD |
-| 효율 배수 | N.N× |
-
----
-
-## M2. 산출물 현황 (Jira·Confluence)
-
-### Jira 이슈
-
-| 유형 | 건수 | 절감 시간 |
-|------|------|----------|
-| Initiative | N | Nh |
-| Epic | N | Nh |
-| Dev/Task | N | Nh |
-
-상세 목록:
-
-| 티켓 | 제목 | AI 기여 내용 |
-|------|------|------------|
-| [PROJ-N](링크) | 제목 | 내용 |
-
-### Confluence 페이지
-
-| 유형 | 건수 | 절감 시간 |
-|------|------|----------|
-| PRD/2-Pager | N | Nh |
-| 전략 문서 | N | Nh |
-| 정책·가이드 | N | Nh |
-| 위클리·회의록 | N | Nh |
-
-상세 목록:
-
-| 페이지 | AI 기여 내용 | 절감 시간 |
-|--------|------------|----------|
-| [제목](링크) | 내용 | Nh |
-
----
-
-## M3. 세션 로그 분포
-
-### 카테고리별
-
-| 카테고리 | 건수 | 절감 시간 |
-|----------|------|----------|
-| 데이터 분석 | N | Nh |
-| 전략·기획 | N | Nh |
-| PRD·설계 | N | Nh |
-| 경쟁·리서치 | N | Nh |
-| 문서화 | N | Nh |
-
----
-
-## M4. 월별 타임라인
-
-[누적 추이 텍스트 요약]
-
----
-
-## 절감 시간 추정 근거
-
-| 유형 | 건수 | 단가 | 소계 |
-|------|------|------|------|
-| Initiative | N | 4h | Nh |
-| Epic | N | 2h | Nh |
-| ... | | | |
-| **합계** | **N** | | **Nh** |
-
-> 절감 시간은 AI 없이 동일 산출물을 직접 작성했을 때 소요 예상 시간 기준 추정치.  
-> 단가 기준: 29CM PM AI 활용 공통 가이드 (https://wiki.team.musinsa.com/...)
-
----
-
-_작성: YYYY-MM-DD | Claude AI-ASSISTED_
+📊 2026년 N월 AI 기여 리포트
+총 N건 / Nh 절감 (~N MD) / N.N× 효율
+상세 대시보드: [대화 링크 복사해서 공유]
+단가 기준: 공통 가이드 v2
 ```
 
 ---
 
-### STEP 4: 출력 방식 분기
+## 주의사항
 
-#### Claude Code + Atlassian MCP (Level 2 자동)
-- Atlassian MCP로 Confluence 페이지 자동 생성
-- 부모 페이지: 사용자 스페이스 내 "AI 기여 리포트" 폴더
-- 레이블 `AI-ASSISTED` 자동 부착
-- 완료 후 링크 출력
-
-#### Claude Desktop only (Level 1 수동)
-- 마크다운 파일 생성 → 다운로드 링크 제공
-- 사용자가 Confluence에 직접 붙여넣기
-
-### STEP 5: 확인 메시지 출력
-
-```
-✅ 리포트 생성 완료
-──────────────────────────────
-대상 월: 2026년 4월
-총 건수: N건 | 절감시간: Nh | N.N MD
-효율 배수: N.N×
-Confluence: https://wiki.team.musinsa.com/...
-──────────────────────────────
-Slack 공유용 요약:
-"📊 2026년 4월 AI 기여 리포트
-총 N건 / Nh 절감 (~N MD)
-상세: [링크]"
-```
+- ❌ 마크다운 표/텍스트로 출력하지 않는다
+- ❌ 단순 텍스트 리스트로 출력하지 않는다
+- ✅ 반드시 React JSX Artifact 대시보드로 출력한다
+- ✅ 다크 테마 (#0f1117 배경) 유지
+- ✅ 4탭 구조 유지 (Overview / 카테고리 / 타임라인 / 전체내역)
+- ✅ KPI 카드 4개 필수 포함
 
 ---
 
-## 자동화 vs 수동 구분
+## 참고 산출물
 
-| 항목 | Level 2 (Code+MCP) | Level 1 (Desktop) |
-|------|--------------------|-------------------|
-| 세션 데이터 로드 | **자동** | **자동** (Persistent Storage) |
-| 집계 계산 | **자동** | **자동** |
-| 리포트 마크다운 생성 | **자동** | **자동** |
-| Confluence 발행 | **자동** (MCP) | 수동 (복사+붙여넣기) |
-| Jira 이슈 링크 포함 | **자동** (MCP 조회) | 수동 입력 |
-| AI-ASSISTED 레이블 | **자동** | 수동 |
-| Slack 공유 | 수동 (텍스트 복사) | 수동 |
-
----
-
-## 설치 방법
-```bash
-cp -r ai-monthly-report/ /mnt/skills/user/
-```
-
-트리거: "AI 기여 리포트 만들어줘" / "월간 리포트 생성" / "이번 달 AI 성과 정리해줘"
+- 전체 구현 예시: [`references/ai-monthly-report-example.jsx`](references/ai-monthly-report-example.jsx)
+- 과거 대시보드 스타일: claude-productivity-dashboard.jsx, claude-unified-dashboard.jsx (동일 스타일)

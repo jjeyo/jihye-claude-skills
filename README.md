@@ -37,7 +37,7 @@
 
 ### 🤖 ai-tracking — AI 활용 리포트
 - **[ai-activity-tracker](ai-tracking/ai-activity-tracker/)** — AI 작업 세션을 표준 단가표 기반으로 기록·누적 저장.
-- **[ai-monthly-report](ai-tracking/ai-monthly-report/)** — 누적 세션 데이터로 월간 AI 기여 리포트 자동 생성(Confluence 발행 지원).
+- **[ai-monthly-report](ai-tracking/ai-monthly-report/)** — 누적 세션 데이터로 월간 AI 기여 리포트를 4탭 React 대시보드 Artifact로 자동 생성. 다크 테마, KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 포함.
 
 ---
 
