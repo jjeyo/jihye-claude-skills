@@ -43,45 +43,107 @@
 
 ## 🚀 설치 방법
 
-### 옵션 1: 전체 설치 (모든 스킬)
+목적에 따라 선택하세요:
+
+| 옵션 | 추천 대상 | 설치/업데이트 난이도 |
+|---|---|---|
+| 1. 단일 스킬 (giget) | 1~2개 스킬만 가볍게 쓰고 싶을 때 | ⭐ |
+| 2. 전체 + 심볼릭 링크 | 본인이 직접 수정/기여할 때 | ⭐⭐ |
+| 3. 카테고리 단위 (sparse checkout) | 특정 그룹만 받고 git으로 관리 | ⭐⭐ |
+| 4. SKILL.md 단일 파일 (curl) | 개별 스킬을 가장 가볍게 시도 | ⭐ |
+
+---
+
+### 옵션 1: 단일 스킬 설치 (가장 권장) ⭐
+
+[giget](https://github.com/unjs/giget)으로 폴더 단위 다운로드. references/, templates/ 모두 포함됨.
 
 ```bash
-# 1. 레포 클론
-git clone https://github.com/jjeyo/jihye-claude-skills.git ~/dev/jihye-claude-skills
+# 설치 (예: ai-monthly-report 스킬)
+npx giget gh:jjeyo/jihye-claude-skills/ai-tracking/ai-monthly-report \
+  ~/.claude/skills/ai-monthly-report --force
 
-# 2. ~/.claude/skills/ 에 심볼릭 링크 생성
+# 업데이트 (동일 명령 재실행)
+npx giget gh:jjeyo/jihye-claude-skills/ai-tracking/ai-monthly-report \
+  ~/.claude/skills/ai-monthly-report --force
+```
+
+다른 스킬 받을 때는 경로의 `<카테고리>/<스킬명>` 부분만 바꾸면 됩니다:
+
+```bash
+npx giget gh:jjeyo/jihye-claude-skills/docs/prd-writer ~/.claude/skills/prd-writer --force
+npx giget gh:jjeyo/jihye-claude-skills/data/29cm-data-query ~/.claude/skills/29cm-data-query --force
+npx giget gh:jjeyo/jihye-claude-skills/design/figma-wireframe ~/.claude/skills/figma-wireframe --force
+```
+
+---
+
+### 옵션 2: 전체 설치 + 심볼릭 링크 (모든 스킬)
+
+레포 한 번 클론 후 모든 스킬을 `~/.claude/skills/`에 심볼릭 링크. `git pull`만 하면 모든 스킬이 한꺼번에 갱신됩니다.
+
+```bash
+# 설치
+git clone https://github.com/jjeyo/jihye-claude-skills.git ~/dev/jihye-claude-skills
 mkdir -p ~/.claude/skills
 for skill in ~/dev/jihye-claude-skills/*/*/SKILL.md; do
   name=$(basename $(dirname $skill))
   ln -s "$(dirname $skill)" ~/.claude/skills/$name
 done
 
-# 3. Claude Code 재시작
+# 업데이트 (한 번에 전체 갱신)
+cd ~/dev/jihye-claude-skills && git pull
 ```
 
-### 옵션 2: 개별 스킬 설치
+이 방식은 본인이 스킬을 수정해서 PR로 기여할 때도 편리합니다.
 
-원하는 스킬만 골라서 복사:
+---
+
+### 옵션 3: 카테고리 단위 (sparse checkout)
+
+특정 카테고리(예: docs, design)만 받고 git으로 관리:
 
 ```bash
-# 예: PRD 작성 스킬만 설치
-git clone https://github.com/jjeyo/jihye-claude-skills.git /tmp/skills
-cp -r /tmp/skills/docs/prd-writer ~/.claude/skills/
-```
-
-또는 ZIP 다운로드:
-```
-https://github.com/jjeyo/jihye-claude-skills/archive/refs/heads/main.zip
-```
-
-### 옵션 3: 선택 동기화 (sparse checkout)
-
-특정 카테고리만 받기:
-```bash
-git clone --filter=blob:none --sparse https://github.com/jjeyo/jihye-claude-skills.git
-cd jihye-claude-skills
+# 설치
+git clone --filter=blob:none --sparse https://github.com/jjeyo/jihye-claude-skills.git ~/skills-repo
+cd ~/skills-repo
 git sparse-checkout set docs design  # 원하는 카테고리만
+
+# ~/.claude/skills/ 에 심볼릭 링크
+for skill in ~/skills-repo/*/*/SKILL.md; do
+  name=$(basename $(dirname $skill))
+  ln -s "$(dirname $skill)" ~/.claude/skills/$name
+done
+
+# 업데이트
+cd ~/skills-repo && git pull
+
+# 나중에 카테고리 추가
+cd ~/skills-repo && git sparse-checkout add jira ai-tracking
 ```
+
+---
+
+### 옵션 4: SKILL.md 한 파일만 (가장 간단)
+
+references/ 없어도 SKILL.md 안의 fallback 인라인 명세로 동작합니다 (단, 정확도는 폴더 단위 설치 대비 약간 낮음).
+
+```bash
+# 설치 (예: ai-monthly-report)
+mkdir -p ~/.claude/skills/ai-monthly-report
+curl -sL https://raw.githubusercontent.com/jjeyo/jihye-claude-skills/main/ai-tracking/ai-monthly-report/SKILL.md \
+  -o ~/.claude/skills/ai-monthly-report/SKILL.md
+
+# 업데이트 (동일 명령 재실행)
+curl -sL https://raw.githubusercontent.com/jjeyo/jihye-claude-skills/main/ai-tracking/ai-monthly-report/SKILL.md \
+  -o ~/.claude/skills/ai-monthly-report/SKILL.md
+```
+
+또는 전체 ZIP: https://github.com/jjeyo/jihye-claude-skills/archive/refs/heads/main.zip
+
+---
+
+> 💡 **설치 후 Claude Code 재시작**을 권장합니다 — 신규/업데이트된 스킬 트리거가 즉시 인식됩니다.
 
 ---
 
