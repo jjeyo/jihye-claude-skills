@@ -1,0 +1,10 @@
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Local state files (skill runtime data, not part of skill definition)
+**/.etr-monitor-state.json
+**/state.json
+**/*.local.json
