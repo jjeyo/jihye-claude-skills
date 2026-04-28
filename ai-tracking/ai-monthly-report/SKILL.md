@@ -1,6 +1,6 @@
 ---
 name: ai-monthly-report
-description: 29CM PM AI 활용 월간 리포트 대시보드 생성 스킬. "AI 기여 리포트 만들어줘", "월간 리포트 생성", "이번 달 AI 성과 정리해줘", "monthly report", "리포트 대시보드 만들어줘" 등의 요청에 트리거됩니다. ai-activity-tracker로 누적된 세션 데이터를 환경별로 로드합니다 — Claude Code는 ~/.claude/ai-sessions.json에서 읽고 자체완결형 HTML 파일을 현재 디렉토리에 생성한 뒤 브라우저로 자동 오픈, Claude Desktop/Web은 window.storage("ai_sessions")에서 읽고 React JSX Artifact 패널로 렌더링. 4탭(Overview/카테고리/타임라인/전체내역) 다크 테마 대시보드 — KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 테이블, 필터링 가능한 전체 세션 내역 포함. 코드만 채팅에 풀어놓는 출력은 금지.
+description: 29CM PM AI 활용 월간 리포트 대시보드 생성 스킬. "AI 기여 리포트 만들어줘", "월간 리포트 생성", "이번 달 AI 성과 정리해줘", "monthly report", "리포트 대시보드 만들어줘" 등의 요청에 트리거됩니다. ai-activity-tracker로 누적된 세션 데이터를 환경별로 로드합니다 — Claude Code는 ~/.claude/ai-sessions.json에서 읽고 자체완결형 HTML 파일을 현재 디렉토리에 생성한 뒤 브라우저로 자동 오픈, Claude Desktop/Web은 window.storage("ai_sessions")에서 읽고 React JSX Artifact 패널로 렌더링. 단가는 Confluence 위키(Page ID 383353087)를 진실의 원천으로 사용 — Atlassian MCP로 매 실행 시 fetch하여 최신값 반영. 4탭(Overview/카테고리/타임라인/전체내역) 다크 테마 대시보드 — KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 테이블, 필터링 가능한 전체 세션 내역 포함. 코드만 채팅에 풀어놓는 출력은 금지.
 ---
 
 # 29CM PM AI 활용 월간 리포트 생성기 (React 대시보드 버전)
@@ -131,42 +131,57 @@ ai-activity-tracker를 안 썼거나 데이터가 비어있으면:
 
 ---
 
-## 단가 기준표 (대시보드 내 추정 근거 섹션용)
+## 단가 기준표 (Source of Truth: Confluence Wiki)
+
+⚠️ **단가의 진실의 원천**: [29CM PM AI 활용 성과 추적 — 공통 가이드](https://musinsa-oneteam.atlassian.net/wiki/spaces/~shin.han/pages/383353087) (Page ID: `383353087`)
+
+ai-activity-tracker와 동일한 단가 표를 사용한다 (절감 단가 근거 테이블 렌더링용). **매 실행 시 위키 fetch**해서 최신 단가 적용 — 아래 표는 fetch 실패 시 fallback.
+
+### 무신사 공통
 
 | 유형 | 단가 |
 |------|------|
-| Initiative | 4h |
-| Epic | 2h |
-| Dev/Task | 1h |
-| 전략문서 S | 32h |
-| 전략문서 A | 16~20h |
-| 전략문서 B | 8~9h |
-| 전략문서 C | 3h |
-| 2pager 복합 | 64h |
-| 2pager 표준 | 32h |
-| 2pager 단순 | 12h |
-| PRD 복합 | 32h |
-| PRD 일반 | 20h |
-| PRD 단순 | 7h |
-| Databricks 단순 | 6~14h |
-| Databricks 분석 | 13~35h |
-| Databricks 종합 | 32~72h |
-| Amplitude 이벤트/퍼널 | 1~4.5h |
-| Amplitude 코호트/리텐션 | 4~5h |
-| Amplitude 복합 | 8~12h |
-| 정책·가이드·API | 2h |
-| 위클리·회의록 | 1h |
-| CRM·OKR 문서 | 2h |
+| Jira — Initiative | 4h |
+| Jira — Epic | 2h |
+| Jira — Dev/Task | 1h |
+| Confluence — PRD / 2-Pager | 3h (±1~2h) |
+| Confluence — 정책·가이드·API | 2h |
+| Confluence — 위클리·회의록 | 1h |
+| Confluence — 분석 리포트 | 2~4h |
+
+### 29CM 특화
+
+| 유형 | 단가 |
+|------|------|
+| Amplitude 분석 리포트 | 3h |
+| Databricks SQL 쿼리 | 2h |
+| 퍼널·코호트·리텐션 분석 | 2~3h |
+| Braze CRM 설계 문서 | 2h |
+| CRM 캠페인 기획서 | 2h |
+| 경쟁사 분석 (If-Then) | 2h |
+| OKR 헬스체크 문서 | 2h |
+| 홈·발견·탐색 전략 문서 | 3~4h |
+| 인터뷰 질문·평가 문서 | 2h |
+| 신규 PM 온보딩 자료 | 2h |
 
 ---
 
 ## 실행 절차
 
-### STEP 0: 실행 환경 감지
+### STEP 0: 실행 환경 감지 + 위키 단가 freshness 체크
 
+**환경 감지**:
 - **Bash 도구 사용 가능** (Read/Write/Bash 모두 있음) → **Claude Code 환경** → 4-B (HTML 파일 출력)
 - **Bash 없고 Artifact 생성 가능** → **Claude Desktop/Web 환경** → 4-A (React Artifact)
-- 둘 다 애매하면 사용자에게 직접 질문: "Claude Code인가요, Desktop인가요?"
+- 둘 다 애매하면 사용자에게 직접 질문
+
+**단가 freshness 체크** (Atlassian MCP 있을 때):
+```
+mcp__atlassian__confluence_get_page(page_id="383353087")
+```
+- "3. 절감 시간 단가 기준" 섹션 파싱 → fallback 표와 비교
+- 차이 있으면 **위키 값 우선**, 변경사항 사용자에게 알림
+- 절감 단가 근거 테이블(Tab 1 마지막)은 항상 위키 단가 기준으로 렌더링
 
 ### STEP 1: 기간 확인
 "어느 달 리포트를 생성할까요?" (기본: 현재 월)

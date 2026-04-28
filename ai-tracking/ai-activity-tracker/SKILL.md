@@ -1,6 +1,6 @@
 ---
 name: ai-activity-tracker
-description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "오늘 작업 저장", "activity log", "이거 로그해줘", "몇 시간 절감됐어" 등의 요청에 트리거됩니다. Jira·Confluence 산출물 생성 직후 표준 단가표(Initiative/Epic/Task, 전략S~C, 2pager 복합/표준/단순, PRD 복합/일반/단순 등) 기반으로 절감 시간을 자동 계산합니다. 환경별 저장: Claude Code는 ~/.claude/ai-sessions.json 파일에 append, Claude Desktop은 window.storage("ai_sessions")에 누적. ai-monthly-report 스킬이 동일 데이터 소스에서 리포트를 생성합니다.
+description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "오늘 작업 저장", "activity log", "이거 로그해줘", "몇 시간 절감됐어" 등의 요청에 트리거됩니다. Jira·Confluence 산출물 생성 직후 표준 단가표 기반으로 절감 시간을 자동 계산합니다. 단가의 진실의 원천은 Confluence 위키(Page ID 383353087)이며 매 실행 시 Atlassian MCP로 fetch하여 최신값 사용 (변경 시 사용자에게 알림, MCP 없으면 fallback 표). 환경별 저장: Claude Code는 ~/.claude/ai-sessions.json 파일에 append, Claude Desktop은 window.storage("ai_sessions")에 누적. ai-monthly-report 스킬이 동일 데이터 소스에서 리포트를 생성합니다.
 ---
 
 # 29CM PM AI 활용 세션 기록기 (표준)
@@ -37,72 +37,81 @@ description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로
 
 ---
 
-## 단가 기준표 (가이드 기준 2026-04-08 v2)
+## 단가 기준표 (Source of Truth: Confluence Wiki)
 
-### Jira 이슈
-| 유형 | 절감 단가 |
-|------|----------|
-| Initiative | 4h |
-| Epic | 2h |
-| Dev/Task | 1h |
+⚠️ **단가의 진실의 원천은 다음 Confluence 페이지**: [29CM PM AI 활용 성과 추적 — 공통 가이드](https://musinsa-oneteam.atlassian.net/wiki/spaces/~shin.han/pages/383353087) (Page ID: `383353087`)
 
-### 전략 문서 (스코프 티어)
-| 티어 | 정의 | 절감 단가 |
-|------|------|----------|
-| S | 연간·반기 로드맵, 전사 영향 전략 | 32h |
-| A | 분기 전략, 크로스펑셔널 3개팀+ | 16~20h |
-| B | 단일 도메인 전략·방향성 | 8~9h |
-| C | 빠른 의사결정 1페이지 전략 | 3h |
+이 페이지는 누구든 수정할 수 있는 살아있는 가이드. **스킬 실행 시마다 위키를 fetch해서 최신 단가를 사용**한다 (아래 STEP 0 참조). 아래 표는 위키 fetch 실패 시의 fallback이며, 위키와 일치하도록 동기화한다.
 
-### 2-Pager (협업 복잡도)
-| 복잡도 | 협업 범위 | 절감 단가 |
-|--------|----------|----------|
-| 복합 | 마케팅+커머스+개발(복수팀) | 64h |
-| 표준 | 개발팀 + 1개 유관부서 | 32h |
-| 단순 | 단일 팀 내부 | 12h |
+### 무신사 공통 단가
 
-### PRD (스코프)
-| 스코프 | 정의 | 절감 단가 |
-|--------|------|----------|
-| 복합 | 3개팀+, 신규 도메인, AC 15개+ | 32h |
-| 일반 | 2개팀, 신규 기능, AC 5~15개 | 20h |
-| 단순 | 1개팀, 기능 수정, AC 5개 이내 | 7h |
+| 유형 | 단가 | 비고 |
+|------|------|------|
+| **Jira — Initiative** | 4h | 배경 분석·범위 정의·팀별 에픽 분해 포함 |
+| **Jira — Epic** | 2h | 요구사항·AC·기술 상세 포함 |
+| **Jira — Dev/Task** | 1h | 단위 작업 정의 |
+| **Confluence — PRD / 2-Pager** | 3h | 과제 스코프에 따라 ±1~2h 조정 허용 |
+| **Confluence — 정책·가이드·API** | 2h | 구조화된 문서 작성 |
+| **Confluence — 위클리·회의록** | 1h | 내용 취합·정리 |
+| **Confluence — 분석 리포트** | 2~4h | 데이터 해석·인사이트 도출 포함 시 4h |
 
-### Confluence 문서
-| 유형 | 절감 단가 |
-|------|----------|
-| PRD/2-Pager → 위 PRD·2pager 단가표 적용 | - |
-| 정책·가이드·API | 2h |
-| 위클리·회의록 | 1h |
-| 분석 리포트 | 2~4h |
+### 29CM 특화 추가 항목
 
-### Databricks SQL (cm29-data-query)
-| 복잡도 | 절감 단가 |
-|--------|----------|
-| 단순 추출 | 6~14h |
-| 분석 쿼리 | 13~35h |
-| 종합 분석 | 32~72h |
+| 유형 | 단가 | 비고 |
+|------|------|------|
+| **Amplitude 분석 리포트** | 3h | Amplitude MCP 활용 포함 |
+| **Databricks SQL 쿼리 작성** | 2h | 29cm-data-query 스킬 활용 |
+| **퍼널·코호트·리텐션 분석** | 2~3h | 분석 depth에 따라 조정 |
+| **Braze CRM 설계 문서** | 2h | 푸시·인앱·알림톡 시나리오 |
+| **CRM 캠페인 기획서** | 2h | 세그먼트·시나리오·A/B안 |
+| **경쟁사 분석 (If-Then 가설)** | 2h | competitor-hypothesis-analyzer 스킬 |
+| **OKR 헬스체크 문서** | 2h | ce-okr-health-check 스킬 |
+| **홈·발견·탐색 전략 문서** | 3~4h | CE 도메인 전략 기획 |
+| **인터뷰 질문·평가 문서** | 2h | interview-question-generator 스킬 |
+| **신규 PM 온보딩 자료** | 2h | 스코프 설계·프로젝트 가이드 |
 
-### Amplitude 분석
-| 유형 | 절감 단가 |
-|------|----------|
-| 이벤트 세그먼테이션 | 1~3h |
-| 퍼널 분석 | 2.5~4.5h |
-| 코호트·리텐션 | 4~5h |
-| 복합 분석 리포트 | 8~12h |
-
-### 기타 29CM 특화
-| 유형 | 절감 단가 |
-|------|----------|
-| Braze CRM 설계 문서 | 2h |
-| CRM 캠페인 기획서 | 2h |
-| 경쟁사 분석 (If-Then 가설) | 2h |
-| OKR 헬스체크 문서 | 2h |
-| 신규 PM 온보딩 자료 | 2h |
+> **단가 조정 원칙**: PRD·분석 등 스코프 편차가 큰 유형은 ±1~2h 조정 가능. 조정 시 세션 로그의 `memo` 필드에 사유 기재.
 
 ---
 
 ## 실행 절차
+
+### STEP 0: 위키 단가 freshness 체크 (필수, Atlassian MCP 있을 때)
+
+**Atlassian MCP가 사용 가능한 환경**이면 매 실행 시 위키 단가를 fetch해서 변경 여부 확인:
+
+```
+mcp__atlassian__confluence_get_page(page_id="383353087")
+```
+
+응답에서 "3. 절감 시간 단가 기준" 섹션의 표를 파싱한다.
+
+**비교 로직**:
+1. 위키의 단가 표 vs 이 SKILL.md의 fallback 단가 표 비교
+2. 차이 있으면 **위키 값 우선 사용**
+3. 사용자에게 변경사항 알림: `"⚠️ 위키 단가 변경 감지: {유형} {기존} → {신규}. 위키 값으로 계산합니다."`
+4. 캐시 저장(선택): `~/.claude/ai-pricing-cache.json` (24h TTL)
+
+```bash
+# 캐시 파일 형식 (Code 환경)
+{
+  "fetched_at": "2026-04-28T10:00:00Z",
+  "source_page_id": "383353087",
+  "source_version": 12,
+  "rates": {
+    "Jira-Initiative": 4,
+    "Jira-Epic": 2,
+    "PRD/2-Pager": 3,
+    "...": "..."
+  }
+}
+```
+
+**Atlassian MCP가 없는 환경**: 이 SKILL.md의 fallback 단가표 사용. 사용자에게 안내:
+```
+ℹ️ Atlassian MCP 미연동 — 캐시된 단가표 사용 중. 최신 단가는 위키에서 직접 확인하세요:
+https://musinsa-oneteam.atlassian.net/wiki/spaces/~shin.han/pages/383353087
+```
 
 ### STEP 1: 입력 수집
 사용자에게 다음을 순서대로 확인한다. 이미 메시지에 포함된 정보는 재질문하지 않는다.
@@ -122,8 +131,10 @@ description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로
 ```
 
 ### STEP 2: 단가 계산
-- 유형 + 스코프 티어 → 단가표에서 자동 매핑
-- 범위 단가(예: 6~14h)인 경우: 복잡도 기반으로 중간값 또는 사용자 확인
+- **단가 출처**: STEP 0에서 fetch한 위키 단가 우선, 실패 시 fallback 표 사용
+- 유형 → 단가 매핑
+- 범위 단가(예: 2~3h)인 경우: 복잡도 기반으로 중간값 또는 사용자 확인
+- ±1~2h 조정 시 `memo` 필드에 사유 기재
 - 실제 AI 소요 시간이 입력된 경우: 효율 배수 = 원래 소요 / 실제 소요
 
 ### STEP 3: 레코드 생성
