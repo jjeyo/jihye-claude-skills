@@ -1,13 +1,13 @@
 ---
 name: ai-activity-tracker
-description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "오늘 작업 저장", "activity log", "이거 로그해줘", "몇 시간 절감됐어" 등의 요청에 트리거됩니다. Jira·Confluence 산출물 생성 직후 표준 단가표 기반으로 절감 시간을 자동 계산합니다. 단가의 진실의 원천은 Confluence 위키(Page ID 383353087)이며 매 실행 시 Atlassian MCP로 fetch하여 최신값 사용 (변경 시 사용자에게 알림, MCP 없으면 fallback 표). 환경별 저장: Claude Code는 ~/.claude/ai-sessions.json 파일에 append, Claude Desktop은 window.storage("ai_sessions")에 누적. ai-monthly-report 스킬이 동일 데이터 소스에서 리포트를 생성합니다.
+description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "오늘 작업 저장", "activity log", "이거 로그해줘", "몇 시간 절감됐어" 등의 요청에 트리거됩니다. Jira·Confluence 산출물 생성 직후 표준 단가표 기반으로 절감 시간을 자동 계산합니다. 단가의 진실의 원천은 Confluence 위키(Page ID 425657419)이며 매 실행 시 Atlassian MCP로 fetch하여 최신값 사용 (변경 시 사용자에게 알림, MCP 없으면 fallback 표). 환경별 저장: Claude Code는 ~/.claude/ai-sessions.json 파일에 append, Claude Desktop은 window.storage("ai_sessions")에 누적. ai-monthly-report 스킬이 동일 데이터 소스에서 리포트를 생성합니다.
 ---
 
 # 29CM PM AI 활용 세션 기록기 (표준)
 
 ## 목적
 29CM PM이 AI 도구로 수행한 작업을 표준 단가 기준에 따라 기록하고, 세션 간 데이터를 누적 저장한다.
-가이드 기준: https://wiki.team.musinsa.com/wiki/spaces/~shin.han/pages/383353087
+가이드 기준: https://wiki.team.musinsa.com/wiki/spaces/~7120204a0ba1ca75154594a01b1c185b5abe45/pages/425657419
 
 ## 트리거 조건
 다음 중 하나에 해당하면 이 스킬을 실행한다.
@@ -39,7 +39,7 @@ description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로
 
 ## 단가 기준표 (가이드 v2 — 스코프 티어 세분화)
 
-⚠️ **단가의 진실의 원천**: [29CM PM AI 활용 성과 추적 — 공통 가이드](https://musinsa-oneteam.atlassian.net/wiki/spaces/~shin.han/pages/383353087) (Page ID: `383353087`)
+⚠️ **단가의 진실의 원천**: [29CM PM AI 활용 성과 추적 — 공통 가이드](https://musinsa-oneteam.atlassian.net/wiki/spaces/~7120204a0ba1ca75154594a01b1c185b5abe45/pages/425657419) (Page ID: `425657419`)
 
 위키는 누구든 수정할 수 있는 살아있는 가이드. **스킬 실행 시마다 위키를 fetch해서 최신 단가 적용**한다 (STEP 0 참조). 아래 표는 fetch 실패 시 fallback. 위키 단가가 변경되면 위키 값을 우선 사용한다.
 
@@ -117,7 +117,7 @@ description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로
 **Atlassian MCP가 사용 가능한 환경**이면 매 실행 시 위키 단가를 fetch해서 변경 여부 확인:
 
 ```
-mcp__atlassian__confluence_get_page(page_id="383353087")
+mcp__atlassian__confluence_get_page(page_id="425657419")
 ```
 
 응답에서 "3. 절감 시간 단가 기준" 섹션의 표를 파싱한다.
@@ -132,7 +132,7 @@ mcp__atlassian__confluence_get_page(page_id="383353087")
 # 캐시 파일 형식 (Code 환경)
 {
   "fetched_at": "2026-04-28T10:00:00Z",
-  "source_page_id": "383353087",
+  "source_page_id": "425657419",
   "source_version": 12,
   "rates": {
     "Jira-Initiative": 4,
@@ -146,7 +146,7 @@ mcp__atlassian__confluence_get_page(page_id="383353087")
 **Atlassian MCP가 없는 환경**: 이 SKILL.md의 fallback 단가표 사용. 사용자에게 안내:
 ```
 ℹ️ Atlassian MCP 미연동 — 캐시된 단가표 사용 중. 최신 단가는 위키에서 직접 확인하세요:
-https://musinsa-oneteam.atlassian.net/wiki/spaces/~shin.han/pages/383353087
+https://musinsa-oneteam.atlassian.net/wiki/spaces/~7120204a0ba1ca75154594a01b1c185b5abe45/pages/425657419
 ```
 
 ### STEP 1: 입력 수집
