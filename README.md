@@ -36,8 +36,13 @@
 - **[interview-question-generator](hr/interview-question-generator/)** — 이력서/포트폴리오 PDF 기반 면접 질문 자동 생성(MUSINSA WAY/Job Competency 기반).
 
 ### 🤖 ai-tracking — AI 활용 리포트
-- **[ai-activity-tracker](ai-tracking/ai-activity-tracker/)** — AI 작업 세션을 표준 단가표 기반으로 기록·누적 저장.
-- **[ai-monthly-report](ai-tracking/ai-monthly-report/)** — 누적 세션 데이터로 월간 AI 기여 리포트를 4탭 React 대시보드 Artifact로 자동 생성. 다크 테마, KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 포함.
+- **[ai-activity-tracker](ai-tracking/ai-activity-tracker/)** — AI 작업 세션을 표준 단가표 기반으로 기록·누적 저장. **환경별 저장**: Claude Code는 `~/.claude/ai-sessions.json`, Desktop은 `window.storage("ai_sessions")`.
+- **[ai-monthly-report](ai-tracking/ai-monthly-report/)** — 누적 세션 데이터로 월간 AI 기여 리포트 4탭 대시보드 자동 생성. **환경별 출력**: Claude Code는 자체완결형 HTML 파일 생성 + 브라우저 자동 오픈, Desktop은 React JSX Artifact 패널. 다크 테마, KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 포함.
+
+> 💡 **AI 활용 리포트 사용 흐름**:
+> 1. `ai-activity-tracker`로 작업할 때마다 "세션 기록해줘" → 데이터 누적
+> 2. 월말에 `ai-monthly-report` 트리거 ("AI 기여 리포트 만들어줘") → 시각화 대시보드 자동 생성
+> 3. 두 스킬 모두 Claude Code / Desktop 양 환경 지원 (자동 감지·분기)
 
 ---
 

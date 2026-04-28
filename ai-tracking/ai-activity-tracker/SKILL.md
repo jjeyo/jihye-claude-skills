@@ -1,6 +1,6 @@
 ---
 name: ai-activity-tracker
-description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "오늘 작업 저장", "activity log", "이거 로그해줘", "몇 시간 절감됐어" 등의 요청에 트리거됩니다. Jira·Confluence 산출물 생성 직후 표준 단가표(Initiative/Epic/Task, 전략S~C, 2pager 복합/표준/단순, PRD 복합/일반/단순 등) 기반으로 절감 시간을 자동 계산하고 Persistent Storage에 누적 저장합니다.
+description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "오늘 작업 저장", "activity log", "이거 로그해줘", "몇 시간 절감됐어" 등의 요청에 트리거됩니다. Jira·Confluence 산출물 생성 직후 표준 단가표(Initiative/Epic/Task, 전략S~C, 2pager 복합/표준/단순, PRD 복합/일반/단순 등) 기반으로 절감 시간을 자동 계산합니다. 환경별 저장: Claude Code는 ~/.claude/ai-sessions.json 파일에 append, Claude Desktop은 window.storage("ai_sessions")에 누적. ai-monthly-report 스킬이 동일 데이터 소스에서 리포트를 생성합니다.
 ---
 
 # 29CM PM AI 활용 세션 기록기 (표준)
@@ -147,13 +147,57 @@ description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로
 }
 ```
 
-### STEP 4: Persistent Storage 저장
+### STEP 4: 누적 저장 (환경 분기)
+
+**먼저 실행 환경을 확인한다**:
+- Bash 도구 사용 가능 → **Claude Code 환경** (4-A 사용)
+- 그렇지 않고 `window.storage` API 사용 가능 → **Claude Desktop 환경** (4-B 사용)
+- 둘 다 안 되면 → 사용자에게 환경 알려주고 출력 텍스트 그대로 복사 안내
+
+#### 4-A. Claude Code 환경: JSON 파일에 append
+
+**표준 저장 경로**: `~/.claude/ai-sessions.json`
+
+```bash
+# 디렉토리 보장
+mkdir -p ~/.claude
+
+# 파일 없으면 빈 배열로 초기화
+[ ! -f ~/.claude/ai-sessions.json ] && echo '[]' > ~/.claude/ai-sessions.json
+
+# 새 레코드 append (jq 사용)
+jq --argjson new '<NEW_RECORD_JSON>' '. + [$new]' ~/.claude/ai-sessions.json > /tmp/ai-sessions.tmp \
+  && mv /tmp/ai-sessions.tmp ~/.claude/ai-sessions.json
+```
+
+`jq`가 없으면 Python fallback:
+```bash
+python3 -c "
+import json, sys, os
+path = os.path.expanduser('~/.claude/ai-sessions.json')
+data = json.load(open(path)) if os.path.exists(path) else []
+data.append(<NEW_RECORD_DICT>)
+json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
+"
+```
+
+`<NEW_RECORD_JSON>` / `<NEW_RECORD_DICT>` 자리에는 STEP 3에서 생성한 레코드를 직렬화해서 넣는다.
+
+#### 4-B. Claude Desktop 환경: window.storage 저장
+
 ```javascript
 // 저장 키: "ai_sessions"
 const existing = await window.storage.get("ai_sessions");
 const sessions = existing ? JSON.parse(existing.value) : [];
 sessions.push(newRecord);
 await window.storage.set("ai_sessions", JSON.stringify(sessions));
+```
+
+#### 4-C. 환경 미지원: 사용자 안내
+
+```
+⚠️ 자동 저장 환경이 아닙니다. 아래 JSON을 별도 보관해주세요:
+{...newRecord JSON...}
 ```
 
 ### STEP 5: 확인 출력
@@ -175,14 +219,16 @@ await window.storage.set("ai_sessions", JSON.stringify(sessions));
 
 ## 자동화 vs 수동 구분 정리
 
-| 항목 | Claude Code + MCP | Claude Desktop만 |
-|------|------------------|----------------|
-| AI-ASSISTED 레이블 부착 | **자동** (Jira/Confluence 생성 즉시) | 수동 (사용자가 직접) |
-| 세션 로그 저장 | **자동** (Persistent Storage) | 수동 (복사 → 시트) |
+| 항목 | Claude Code | Claude Desktop |
+|------|------------|----------------|
+| 저장 위치 | `~/.claude/ai-sessions.json` | `window.storage` ("ai_sessions") |
+| 누적 저장 방식 | jq/python으로 JSON append | localStorage 형태 |
+| AI-ASSISTED 레이블 부착 | **자동** (Jira/Confluence MCP) | 수동 |
 | 날짜·MD 계산 | **자동** | **자동** |
 | 단가 매핑 | **자동** | **자동** |
 | 스코프 티어 판단 | 사용자 확인 필요 | 사용자 확인 필요 |
 | 산출물 링크 | 사용자 입력 | 사용자 입력 |
+| ai-monthly-report 연동 | 동일 JSON 파일 읽음 | 동일 storage 키 읽음 |
 
 ---
 

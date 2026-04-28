@@ -1,6 +1,6 @@
 ---
 name: ai-monthly-report
-description: 29CM PM AI 활용 월간 리포트 React 대시보드 생성 스킬. "AI 기여 리포트 만들어줘", "월간 리포트 생성", "이번 달 AI 성과 정리해줘", "monthly report", "리포트 대시보드 만들어줘" 등의 요청에 트리거됩니다. ai-activity-tracker로 누적된 Persistent Storage 세션 데이터를 로드하여, 4탭(Overview/카테고리/타임라인/전체내역) 다크 테마 React JSX Artifact 대시보드로 출력합니다. KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 테이블, 필터링 가능한 전체 세션 내역을 포함합니다. 마크다운 텍스트가 아닌 시각화 대시보드로만 출력합니다.
+description: 29CM PM AI 활용 월간 리포트 대시보드 생성 스킬. "AI 기여 리포트 만들어줘", "월간 리포트 생성", "이번 달 AI 성과 정리해줘", "monthly report", "리포트 대시보드 만들어줘" 등의 요청에 트리거됩니다. ai-activity-tracker로 누적된 세션 데이터를 환경별로 로드합니다 — Claude Code는 ~/.claude/ai-sessions.json에서 읽고 자체완결형 HTML 파일을 현재 디렉토리에 생성한 뒤 브라우저로 자동 오픈, Claude Desktop/Web은 window.storage("ai_sessions")에서 읽고 React JSX Artifact 패널로 렌더링. 4탭(Overview/카테고리/타임라인/전체내역) 다크 테마 대시보드 — KPI 카드, 카테고리/도구별 분포, 주차별 타임라인, 절감 단가 근거 테이블, 필터링 가능한 전체 세션 내역 포함. 코드만 채팅에 풀어놓는 출력은 금지.
 ---
 
 # 29CM PM AI 활용 월간 리포트 생성기 (React 대시보드 버전)
@@ -19,12 +19,19 @@ ai-activity-tracker로 누적된 세션 데이터를 기반으로 **React 대시
 
 ---
 
-## 출력 형태: React JSX Artifact (필수)
+## 출력 형태 (환경별 분기)
 
-이 스킬은 **반드시 React JSX Artifact로 출력**한다.
-마크다운 텍스트, 표, 일반 텍스트 형식은 사용하지 않는다.
+이 스킬은 **반드시 시각화된 대시보드**로 출력한다. 환경에 따라 형식이 다름:
 
-전체 구현 레퍼런스: [`references/ai-monthly-report-example.jsx`](references/ai-monthly-report-example.jsx) — 4탭 구조, 디자인 시스템, 집계 로직 모두 포함.
+| 환경 | 출력 형식 | 동작 |
+|------|----------|------|
+| **Claude Desktop / Web** | React JSX **Artifact** | Artifact 패널에 4탭 대시보드 렌더링 |
+| **Claude Code (CLI)** | 자체완결형 **HTML 파일** | `./ai-monthly-report-YYYY-MM.html` 생성 + 브라우저 자동 오픈 |
+
+❌ 마크다운 표/텍스트로 출력 금지
+❌ 코드만 채팅에 풀어놓기 금지
+
+전체 구현 레퍼런스: [`references/ai-monthly-report-example.jsx`](references/ai-monthly-report-example.jsx) — Artifact 환경에서 그대로 사용 가능, HTML 환경에서도 동일 컴포넌트 사용.
 
 ---
 
@@ -79,29 +86,48 @@ ai-activity-tracker로 누적된 세션 데이터를 기반으로 **React 대시
 
 ---
 
-## 데이터 소스
+## 데이터 소스 (환경별)
 
-### Case A: Persistent Storage 데이터 있음 (ai-activity-tracker 사용 중)
+### Case A: Claude Code 환경 — JSON 파일 읽기
+
+**ai-activity-tracker가 누적한 표준 경로**: `~/.claude/ai-sessions.json`
+
+```bash
+# 파일 존재 + 비어있지 않은지 확인
+[ -s ~/.claude/ai-sessions.json ] || echo "데이터 없음"
+
+# 특정 월만 필터 (jq)
+jq --arg m "2026-04" '[.[] | select(.date | startswith($m))]' ~/.claude/ai-sessions.json
+```
+
+Python으로:
+```python
+import json, os
+path = os.path.expanduser('~/.claude/ai-sessions.json')
+sessions = json.load(open(path)) if os.path.exists(path) else []
+data = [s for s in sessions if s['date'].startswith('2026-04')]
+```
+
+### Case B: Claude Desktop 환경 — Persistent Storage
 
 ```javascript
 const raw = await window.storage.get("ai_sessions");
 const sessions = raw ? JSON.parse(raw.value) : [];
-// 기간 필터링
-const targetMonth = "2026-04"; // 현재 월 또는 사용자 지정
+const targetMonth = "2026-04";
 const data = sessions.filter(s => s.date.startsWith(targetMonth));
 ```
 
-### Case B: Persistent Storage 없음 (데이터 직접 입력)
+### Case C: 데이터 없음 — 사용자 입력 요청
 
-사용자에게 아래 필드를 입력받아 sessions 배열 구성:
+ai-activity-tracker를 안 썼거나 데이터가 비어있으면:
 
 ```
-날짜, 도구(Desktop/Code), 카테고리, 유형/스코프 티어, 작업 내용, 절감시간(h), 산출물 링크
+"세션 목록을 붙여넣어주세요. 형식 예시:
+날짜 | 도구 | 카테고리 | 유형 | 작업 | 시간 | 링크
+2026-04-03 | Code | PRD·설계 | 2pager-표준 | 이구위크 2pager | 32 | https://..."
 ```
 
-입력 방법:
-1. "세션 목록 붙여줘" → 사용자가 텍스트로 붙여넣기
-2. 슬랙/노션에서 복사한 기존 리포트 텍스트 파싱
+또는 슬랙·노션에서 복사한 기존 리포트 텍스트를 파싱.
 
 ---
 
@@ -136,11 +162,19 @@ const data = sessions.filter(s => s.date.startsWith(targetMonth));
 
 ## 실행 절차
 
+### STEP 0: 실행 환경 감지
+
+- **Bash 도구 사용 가능** (Read/Write/Bash 모두 있음) → **Claude Code 환경** → 4-B (HTML 파일 출력)
+- **Bash 없고 Artifact 생성 가능** → **Claude Desktop/Web 환경** → 4-A (React Artifact)
+- 둘 다 애매하면 사용자에게 직접 질문: "Claude Code인가요, Desktop인가요?"
+
 ### STEP 1: 기간 확인
 "어느 달 리포트를 생성할까요?" (기본: 현재 월)
 
-### STEP 2: 데이터 로드
-Persistent Storage 조회 → 없으면 사용자 입력 요청
+### STEP 2: 데이터 로드 (환경에 따라)
+- **Code**: `~/.claude/ai-sessions.json` 읽기 (위 Case A)
+- **Desktop**: `window.storage.get("ai_sessions")` 호출 (위 Case B)
+- **데이터 없음**: 사용자 입력 요청 (위 Case C)
 
 ### STEP 3: 집계 계산 (JavaScript 내부)
 
@@ -152,11 +186,71 @@ const toolGroups = groupBy(sessions, "tool");
 const weekGroups = groupByWeek(sessions); // 주차별
 ```
 
-### STEP 4: React JSX Artifact 생성
+### STEP 4: 대시보드 출력 (환경별 분기)
+
+#### 4-A. Claude Desktop / Web — React JSX Artifact
 
 **우선순위**:
 1. `references/ai-monthly-report-example.jsx` 가 존재하면 → 그 파일을 Read하여 구조·스타일 그대로 따라가되, 하드코딩된 `SESSIONS` 배열만 실제 데이터로 교체
 2. references 파일이 없으면 → 아래 **Fallback 인라인 명세**로 직접 구현
+
+#### 4-B. Claude Code (CLI) — 자체완결형 HTML 파일
+
+**저장 위치**: 현재 작업 디렉토리 (`./ai-monthly-report-YYYY-MM.html`)
+
+**HTML 템플릿 구조** (자체완결형, CDN 사용):
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>AI 활용 성과 리포트 — YYYY년 M월</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { margin:0; font-family:'Pretendard','Apple SD Gothic Neo',sans-serif; background:#0f1117; color:#e2e8f0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState } = React;
+
+    // ── 실제 세션 데이터 (~/.claude/ai-sessions.json에서 로드한 값 인라인) ──
+    const SESSIONS = /* [실제 데이터 배열 인라인] */;
+
+    // ── references/ai-monthly-report-example.jsx의 App 컴포넌트 동일 코드 ──
+    // (CAT_META, TOOL_COLOR, sum, groupBy, App 함수 그대로 복사)
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
+```
+
+**파일 생성 후 자동 브라우저 오픈**:
+```bash
+# macOS
+open ./ai-monthly-report-2026-04.html
+
+# Linux
+xdg-open ./ai-monthly-report-2026-04.html
+
+# Windows (WSL 또는 Git Bash)
+start ./ai-monthly-report-2026-04.html
+
+# 사용자 환경 모르면 절대 경로만 출력
+echo "리포트 생성됨: $(pwd)/ai-monthly-report-2026-04.html"
+echo "브라우저에서 열어주세요."
+```
+
+**Claude Code에서 권장 흐름**:
+1. Write 도구로 HTML 파일 생성
+2. Bash로 OS 감지: `uname -s` (Darwin/Linux/MINGW...)
+3. 적절한 open 명령 실행
+4. 사용자에게 파일 경로 안내
 
 ---
 
@@ -303,10 +397,12 @@ const TABS = [
 
 - ❌ 마크다운 표/텍스트로 출력하지 않는다
 - ❌ 단순 텍스트 리스트로 출력하지 않는다
-- ✅ 반드시 React JSX Artifact 대시보드로 출력한다
+- ❌ Claude Code인데 채팅창에 JSX 코드만 풀어놓지 않는다 → **반드시 HTML 파일로 저장**
+- ✅ 환경별 분기: Desktop은 Artifact, Code는 HTML 파일 + 자동 브라우저 오픈
 - ✅ 다크 테마 (#0f1117 배경) 유지
 - ✅ 4탭 구조 유지 (Overview / 카테고리 / 타임라인 / 전체내역)
 - ✅ KPI 카드 4개 필수 포함
+- ✅ 실제 데이터로 렌더링 (하드코딩된 샘플 데이터 그대로 출력 금지)
 
 ---
 
