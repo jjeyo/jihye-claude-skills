@@ -131,38 +131,43 @@ ai-activity-tracker를 안 썼거나 데이터가 비어있으면:
 
 ---
 
-## 단가 기준표 (Source of Truth: Confluence Wiki)
+## 단가 기준표 (가이드 v2 — 스코프 티어 세분화)
 
 ⚠️ **단가의 진실의 원천**: [29CM PM AI 활용 성과 추적 — 공통 가이드](https://musinsa-oneteam.atlassian.net/wiki/spaces/~shin.han/pages/383353087) (Page ID: `383353087`)
 
-ai-activity-tracker와 동일한 단가 표를 사용한다 (절감 단가 근거 테이블 렌더링용). **매 실행 시 위키 fetch**해서 최신 단가 적용 — 아래 표는 fetch 실패 시 fallback.
-
-### 무신사 공통
+ai-activity-tracker와 동일한 단가 표를 사용한다 (절감 단가 근거 테이블 렌더링용). **매 실행 시 위키 fetch**해서 최신 단가 적용 — 아래 표는 fetch 실패 시 fallback. 위키와 차이 있으면 위키 값 우선.
 
 | 유형 | 단가 |
 |------|------|
-| Jira — Initiative | 4h |
-| Jira — Epic | 2h |
-| Jira — Dev/Task | 1h |
-| Confluence — PRD / 2-Pager | 3h (±1~2h) |
-| Confluence — 정책·가이드·API | 2h |
-| Confluence — 위클리·회의록 | 1h |
-| Confluence — 분석 리포트 | 2~4h |
-
-### 29CM 특화
-
-| 유형 | 단가 |
-|------|------|
-| Amplitude 분석 리포트 | 3h |
-| Databricks SQL 쿼리 | 2h |
-| 퍼널·코호트·리텐션 분석 | 2~3h |
-| Braze CRM 설계 문서 | 2h |
-| CRM 캠페인 기획서 | 2h |
-| 경쟁사 분석 (If-Then) | 2h |
-| OKR 헬스체크 문서 | 2h |
-| 홈·발견·탐색 전략 문서 | 3~4h |
-| 인터뷰 질문·평가 문서 | 2h |
-| 신규 PM 온보딩 자료 | 2h |
+| Initiative | 4h |
+| Epic | 2h |
+| Dev/Task | 1h |
+| 전략문서 S | 32h |
+| 전략문서 A | 16~20h |
+| 전략문서 B | 8~9h |
+| 전략문서 C | 3h |
+| 2pager 복합 | 64h |
+| 2pager 표준 | 32h |
+| 2pager 단순 | 12h |
+| PRD 복합 | 32h |
+| PRD 일반 | 20h |
+| PRD 단순 | 7h |
+| Databricks 단순 | 6~14h |
+| Databricks 분석 | 13~35h |
+| Databricks 종합 | 32~72h |
+| Amplitude 이벤트/퍼널 | 1~4.5h |
+| Amplitude 코호트/리텐션 | 4~5h |
+| Amplitude 복합 | 8~12h |
+| 정책·가이드·API | 2h |
+| 위클리·회의록 | 1h |
+| 분석 리포트 | 2~4h |
+| Braze CRM 설계 | 2h |
+| CRM 캠페인 기획 | 2h |
+| 경쟁사 분석 | 2h |
+| OKR 헬스체크 | 2h |
+| 홈·발견·탐색 전략 | 3~4h |
+| 인터뷰 질문·평가 | 2h |
+| 신규 PM 온보딩 | 2h |
 
 ---
 
