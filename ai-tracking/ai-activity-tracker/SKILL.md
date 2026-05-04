@@ -1,6 +1,6 @@
 ---
 name: ai-activity-tracker
-description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "오늘 작업 저장", "activity log", "이거 로그해줘", "몇 시간 절감됐어" 등의 요청에 트리거됩니다. Jira·Confluence 산출물 생성 직후 표준 단가표 기반으로 절감 시간을 자동 계산합니다. 단가의 진실의 원천은 Confluence 위키(Page ID 425657419)이며 매 실행 시 Atlassian MCP로 fetch하여 최신값 사용 (변경 시 사용자에게 알림, MCP 없으면 fallback 표). 환경별 저장: Claude Code는 ~/.claude/ai-sessions.json 파일에 append, Claude Desktop은 window.storage("ai_sessions")에 누적. ai-monthly-report 스킬이 동일 데이터 소스에서 리포트를 생성합니다.
+description: 29CM PM AI 활용 세션 기록 스킬. "세션 기록해줘", "로그 남겨줘", "AI 기여 기록", "pending 확인", "방금 세션 보여줘", "저장", "OK", "그대로 저장", "PRD 단순으로 바꿔", "Databricks 종합으로", "방금 세션 무시" 등의 요청에 트리거됩니다. Claude Code 환경에서는 ~/.claude/hooks/ai-tracking-hook.py가 PostToolUse·Stop hook으로 자동 메트릭 누적 (Jira/Confluence/Figma/SQL/Slack/토픽/스킬 12종 작업 타입 자동 감지). 임계값 OR 조건 (파일 3+/티켓 1+/페이지 1+/tool_calls 10+/토픽 저장/60분) 도달 시 자동 추정 record를 ~/.claude/ai-sessions/.pending.json에 작성하고, 사용자 확인 후 ~/.claude/ai-sessions/YYYY-MM.json에 월별 분리 저장. 단가는 Confluence 위키(Page ID 425657419)에서 fetch. 스코프 티어(PRD 단순/일반/복합 등)는 자동 추정 후 사용자가 한 번 확인·보정. Claude Desktop 환경에서는 window.storage("ai_sessions")에 누적 (hook 미지원, 명시 호출만). ai-monthly-report 스킬이 동일 데이터 소스에서 리포트를 생성합니다.
 ---
 
 # 29CM PM AI 활용 세션 기록기 (표준)
@@ -194,58 +194,79 @@ https://musinsa-oneteam.atlassian.net/wiki/spaces/~7120204a0ba1ca75154594a01b1c1
 }
 ```
 
-### STEP 4: 누적 저장 (환경 분기)
+### STEP 4: 누적 저장 (Hook 자동화 + 환경 분기)
 
-**먼저 실행 환경을 확인한다**:
-- Bash 도구 사용 가능 → **Claude Code 환경** (4-A 사용)
-- 그렇지 않고 `window.storage` API 사용 가능 → **Claude Desktop 환경** (4-B 사용)
-- 둘 다 안 되면 → 사용자에게 환경 알려주고 출력 텍스트 그대로 복사 안내
+#### 4-A. Claude Code 환경: Hook 자동 누적 + 월별 파일 분리
 
-#### 4-A. Claude Code 환경: JSON 파일에 append
+**Hook 시스템** (`~/.claude/hooks/ai-tracking-hook.py`)이 자동으로:
+1. 매 tool 호출(PostToolUse) 직후 메트릭 누적 → `~/.claude/.session-metrics.json` (임시)
+2. 임계값 OR 조건 도달 시 자동 추정 record 생성 → `~/.claude/ai-sessions/.pending.json`
+3. 사용자 확인 후 → `~/.claude/ai-sessions/YYYY-MM.json` 에 append (월별 분리)
 
-**표준 저장 경로**: `~/.claude/ai-sessions.json`
+**Hook이 자동 감지하는 작업 타입** (12종):
+- Jira 티켓 작성·수정·조회
+- Confluence 페이지 작성·수정·조회 (PRD/2-Pager/정책·가이드/위클리 자동 분류)
+- Figma 와이어프레임 (figma-wireframe 스킬, use_figma)
+- SQL 파일 작성 (.sql 확장자, 단순/분석/종합 자동 추정)
+- Amplitude 분석
+- Slack 요약·읽기·쓰기
+- 토픽 저장 (`~/.claude/topics/*.md`)
+- 스킬·규칙·에이전트 구축 (`~/.claude/skills/`, `~/.claude/rules/`, `~/dev/jihye-claude-skills/`)
 
-```bash
-# 디렉토리 보장
-mkdir -p ~/.claude
+**임계값 (OR 조건, 한 신혜님 가이드 기준)**:
+- 파일 3개+ / Jira 티켓 1건+ / Confluence 페이지 1건+
+- tool_calls 10회+ / 토픽 저장 발생 / 60분 경과
 
-# 파일 없으면 빈 배열로 초기화
-[ ! -f ~/.claude/ai-sessions.json ] && echo '[]' > ~/.claude/ai-sessions.json
+**Pending 확인 흐름** — 자동 추정 결과를 사용자가 확인 후 확정:
 
-# 새 레코드 append (jq 사용)
-jq --argjson new '<NEW_RECORD_JSON>' '. + [$new]' ~/.claude/ai-sessions.json > /tmp/ai-sessions.tmp \
-  && mv /tmp/ai-sessions.tmp ~/.claude/ai-sessions.json
+```
+사용자: "방금 세션 보여줘" / "pending 확인" / 또는 다음 응답 시 자동 안내
+↓
+Claude: pending.json 읽고 요약 카드 표시
+"📝 AI 기여 세션 자동 기록 준비됨 (2026-04-28 14:00~15:30)
+🎫 TM-2979 Initiative → 4h ✓
+📄 PRD: 멀티플랫폼 통합 → 자동 추정 PRD-일반 (20h, AC 8개·2팀 추정) ⚠️ 확인 필요
+📊 취향공유_v3.sql → Databricks-분석 (20h) ⚠️ 확인 필요
+🎨 Figma 와이어프레임 3안 → 5h ✓
+총 추정: 49h 절감
+
+✅ 그대로 저장 / 🔧 수정 / ❌ 무시"
 ```
 
-`jq`가 없으면 Python fallback:
-```bash
-python3 -c "
-import json, sys, os
-path = os.path.expanduser('~/.claude/ai-sessions.json')
-data = json.load(open(path)) if os.path.exists(path) else []
-data.append(<NEW_RECORD_DICT>)
-json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
-"
-```
+**사용자 응답 처리**:
 
-`<NEW_RECORD_JSON>` / `<NEW_RECORD_DICT>` 자리에는 STEP 3에서 생성한 레코드를 직렬화해서 넣는다.
+| 응답 | 동작 |
+|------|------|
+| "저장" / "OK" / "그대로" | 자동 추정값으로 record 생성 → `~/.claude/ai-sessions/YYYY-MM.json` append, pending 삭제 |
+| "PRD 단순으로" / "Databricks 종합으로" | 해당 항목 단가 보정 후 저장 |
+| "Figma 빼고" / "Initiative만 저장" | 일부 항목 제외 후 저장 |
+| "메모: 마이그레이션 작업" | record에 memo 필드 추가 |
+| "전부 무시" / "저장 안 해" | pending 파일 삭제 (저장 안 함) |
+| 무응답 (3분) | 사용자 설정에 따라 default 동작 (auto-save / keep-pending) |
 
-#### 4-B. Claude Desktop 환경: window.storage 저장
+#### 4-B. Claude Desktop 환경: window.storage 저장 (Hook 미지원)
+
+Desktop은 hook 시스템이 없으므로 명시적 호출만:
 
 ```javascript
-// 저장 키: "ai_sessions"
 const existing = await window.storage.get("ai_sessions");
 const sessions = existing ? JSON.parse(existing.value) : [];
 sessions.push(newRecord);
 await window.storage.set("ai_sessions", JSON.stringify(sessions));
 ```
 
-#### 4-C. 환경 미지원: 사용자 안내
+#### 4-C. 사용자 수동 명령 (환경 무관)
 
-```
-⚠️ 자동 저장 환경이 아닙니다. 아래 JSON을 별도 보관해주세요:
-{...newRecord JSON...}
-```
+| 명령 | 동작 |
+|------|------|
+| "AI 기여 기록해줘" / "세션 기록해줘" | 임계값 미도달이라도 즉시 수동 flush (현재 메트릭 → pending) |
+| "pending 확인" / "방금 세션 보여줘" | pending.json 내용 카드로 표시 |
+| "저장" / "OK" / "그대로 저장" | pending → YYYY-MM.json 저장 + 폐기 |
+| "PRD 단순으로 바꿔" | pending 항목 단가 보정 |
+| "오늘 기록한 세션 보여줘" | YYYY-MM.json에서 오늘 record 표시 |
+| "방금 세션 카테고리 X로 바꿔" | YYYY-MM.json 마지막 record 수정 |
+| "방금 세션 OKR 선물하기 성장 태그" | 마지막 record OKR Initiative 추가 |
+| "방금 세션 무시" | pending 폐기 또는 마지막 record 삭제 |
 
 ### STEP 5: 확인 출력
 저장 후 다음 형식으로 요약 출력:
